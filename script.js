@@ -1,219 +1,410 @@
-/**
- * 問卷表單提交系統
- * 使用原生 JavaScript (ES6+) 和 Fetch API
- * 
- * 重要：請將下方的 GAS_WEB_APP_URL 替換為您的 Google Apps Script Web App URL
- */
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHbeaDPOHQzdRFQErbg8wgaaG_cuP8mo0OKej0Kqd-G-r8xjPAAc8x3w29hp4SMMKQ/exec';
+// ⚠️ 重要：請將下面的 URL 替換成您的 Google Apps Script Web App URL
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2tdF2gu4f-uTm2fp38Hfw2Fn7MQstr9KleZtBktSmawBHW3uFtm7CYolCaVzIvKpMxw/exec';
 
-/**
- * DOM 元素引用
- */
-const form = document.getElementById('surveyForm');
-const submitBtn = document.getElementById('submitBtn');
-const btnLoader = document.getElementById('btnLoader');
-const messageContainer = document.getElementById('messageContainer');
-
-/**
- * 表單欄位驗證規則
- */
-const validationRules = {
-    name: {
-        required: true,
-        validate: (value) => value.trim().length >= 2,
-        message: '姓名至少需要 2 個字元'
-    },
-    email: {
-        required: true,
-        validate: (value) => {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(value.trim());
-        },
-        message: '請輸入有效的電子郵件地址'
-    },
-    food: {
-        required: true,
-        validate: (value) => value !== '',
-        message: '請選擇飲食滿意度'
-    },
-    drink: {
-        required: true,
-        validate: (value) => value !== '',
-        message: '請選擇飲水習慣滿意度'
-    },
-    stay: {
-        required: true,
-        validate: (value) => value !== '',
-        message: '請選擇居住環境滿意度'
-    },
-    travel: {
-        required: true,
-        validate: (value) => value !== '',
-        message: '請選擇旅行頻率滿意度'
-    }
-};
-
-/**
- * 顯示錯誤訊息
- * @param {string} fieldName - 欄位名稱
- * @param {string} message - 錯誤訊息
- */
-function showError(fieldName, message) {
-    const errorElement = document.getElementById(`${fieldName}Error`);
-    if (errorElement) {
-        errorElement.textContent = message;
-        errorElement.classList.add('show');
-    }
-    
-    const inputElement = document.querySelector(`[name="${fieldName}"]`);
-    if (inputElement) {
-        inputElement.style.borderColor = 'var(--color-error)';
-    }
-}
-
-/**
- * 清除錯誤訊息
- * @param {string} fieldName - 欄位名稱
- */
-function clearError(fieldName) {
-    const errorElement = document.getElementById(`${fieldName}Error`);
-    if (errorElement) {
-        errorElement.textContent = '';
-        errorElement.classList.remove('show');
-    }
-    
-    const inputElement = document.querySelector(`[name="${fieldName}"]`);
-    if (inputElement) {
-        inputElement.style.borderColor = '';
-    }
-}
-
-/**
- * 驗證單一欄位
- * @param {string} fieldName - 欄位名稱
- * @param {string} value - 欄位值
- * @returns {boolean} - 驗證是否通過
- */
-function validateField(fieldName, value) {
-    const rule = validationRules[fieldName];
-    
-    if (!rule) {
-        return true; // 沒有驗證規則的欄位視為通過
-    }
-    
-    // 檢查必填欄位
-    if (rule.required && (!value || value.trim() === '')) {
-        showError(fieldName, `${fieldName === 'name' ? '姓名' : fieldName === 'email' ? '電子郵件' : '此欄位'}為必填項目`);
+// 檢查 URL 是否已設定
+function checkScriptUrl() {
+    if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
         return false;
     }
-    
-    // 如果欄位為空且非必填，則通過驗證
-    if (!rule.required && (!value || value.trim() === '')) {
-        clearError(fieldName);
-        return true;
-    }
-    
-    // 執行自訂驗證規則
-    if (!rule.validate(value)) {
-        showError(fieldName, rule.message);
-        return false;
-    }
-    
-    clearError(fieldName);
     return true;
 }
 
-/**
- * 驗證整個表單
- * @returns {boolean} - 表單驗證是否通過
- */
-function validateForm() {
-    let isValid = true;
-    const formData = new FormData(form);
-    
-    // 驗證所有有規則的欄位
-    Object.keys(validationRules).forEach(fieldName => {
-        const value = formData.get(fieldName);
-        if (!validateField(fieldName, value)) {
-            isValid = false;
-        }
-    });
-    
-    return isValid;
-}
+// 取得表單元素
+const form = document.getElementById('surveyForm');
+const submitBtn = document.getElementById('submitBtn');
+const messageDiv = document.getElementById('message');
+const nextBtn = document.getElementById('nextBtn');
+const prevBtn = document.getElementById('prevBtn');
 
-/**
- * 收集表單數據並轉換為 JSON 格式
- * @returns {Object} - 符合要求的 JSON 數據物件
- * 注意：欄位名稱必須與 Google 表單欄位名稱精確匹配（首字母大寫）
- */
-function collectFormData() {
-    const formData = new FormData(form);
-    const data = {};
-    
-    // 欄位映射：表單欄位名稱 -> JSON Key 名稱（必須與 Google 表單欄位名稱匹配）
-    const fieldMapping = {
-        'name': 'Name',
-        'email': 'Email',
-        'gender': 'Gender',
-        'age': 'Age',
-        'transportation': 'transportation',
-        'interest': 'Interest',
-        'feedback': 'Feedback',
-        'food': 'food',
-        'drink': 'drink',
-        'stay': 'stay',
-        'travel': 'travel'
-    };
-    
-    // 收集所有表單欄位並轉換為正確的 Key 名稱
-    Object.keys(fieldMapping).forEach(formField => {
-        const jsonKey = fieldMapping[formField];
-        const value = formData.get(formField);
+// 當前頁面索引
+let currentPage = 1;
+const totalPages = 2;
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    updateProgressIndicator();
+    showPage(1);
+});
+
+// 下一步按鈕事件
+nextBtn.addEventListener('click', () => {
+    if (validatePage1()) {
+        showPage(2);
+        updateProgressIndicator();
+    }
+});
+
+// 上一步按鈕事件
+prevBtn.addEventListener('click', () => {
+    showPage(1);
+    updateProgressIndicator();
+});
+
+// 顯示指定頁面
+function showPage(pageNumber) {
+    // 隱藏所有頁面
+    document.querySelectorAll('.form-page').forEach(page => {
+        page.classList.remove('active');
+    });
+
+    // 顯示指定頁面
+    const targetPage = document.querySelector(`.form-page[data-page="${pageNumber}"]`);
+    if (targetPage) {
+        targetPage.classList.add('active');
+        currentPage = pageNumber;
         
-        // 處理空值：非必填欄位如果為空則設為空字串
-        if (value === null || value === '') {
-            data[jsonKey] = '';
-        } else {
-            // 數字欄位轉換
-            if (formField === 'age') {
-                data[jsonKey] = value ? parseInt(value, 10) : '';
-            } else if (['food', 'drink', 'stay', 'travel'].includes(formField)) {
-                data[jsonKey] = value ? parseInt(value, 10) : '';
-            } else {
-                data[jsonKey] = value.trim();
-            }
-        }
-    });
-    
-    // 添加時間戳（ISO 8601 格式）
-    data.timestamp = new Date().toISOString();
-    
-    return data;
-}
-
-/**
- * 顯示訊息給使用者
- * @param {string} message - 訊息內容
- * @param {string} type - 訊息類型 ('success' 或 'error')
- */
-function showMessage(message, type = 'success') {
-    messageContainer.innerHTML = `<div class="message ${type}">${message}</div>`;
-    
-    // 3 秒後自動清除成功訊息
-    if (type === 'success') {
-        setTimeout(() => {
-            messageContainer.innerHTML = '';
-        }, 5000);
+        // 滾動到頁面頂部
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-/**
- * 設定提交按鈕狀態
- * @param {boolean} isLoading - 是否正在載入
- */
-function setSubmitButtonState(isLoading) {
-    if (isLoading) {
+// 更新進度指示器
+function updateProgressIndicator() {
+    document.querySelectorAll('.progress-step').forEach((step, index) => {
+        if (index + 1 <= currentPage) {
+            step.classList.add('active');
+        } else {
+            step.classList.remove('active');
+        }
+    });
+}
+
+// 表單提交事件處理
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // 檢查 URL 是否已設定
+    if (!checkScriptUrl()) {
+        showMessage('錯誤：請先在 script.js 中設定 Google Apps Script Web App URL！', 'error');
+        console.error('請設定 SCRIPT_URL：在 script.js 檔案中，將 YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE 替換成您的 Web App URL');
+        return;
+    }
+    
+    // 檢查必填欄位
+    if (!validatePage1()) {
+        showPage(1);
+        updateProgressIndicator();
+        showMessage('請填寫第一頁的所有必填欄位', 'error');
+        return;
+    }
+
+    // 收集表單資料
+    const formData = collectFormData();
+
+    // 顯示載入狀態
+    setLoadingState(true);
+
+    try {
+        // 使用 fetch API 提交資料
+        // 添加調試資訊
+        console.log('準備提交資料：', formData);
+        console.log('目標 URL：', SCRIPT_URL);
+        console.log('目前頁面來源：', window.location.origin);
+        
+        // Google Apps Script Web App 的特殊處理方式
+        // 在 GitHub Pages 等外部網站上，可能會遇到 CORS 問題
+        // 因此我們會先嘗試 fetch，失敗時使用表單提交方式
+        
+        let response;
+        let useBackupMethod = false;
+        
+        try {
+            // 方法 1：嘗試使用 fetch（標準方式）
+            // 先嘗試 cors 模式，如果失敗則使用備用方法
+            response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',  // 嘗試 cors 模式
+                redirect: 'follow',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `data=${encodeURIComponent(JSON.stringify(formData))}`
+            });
+        } catch (fetchError) {
+            console.error('Fetch 錯誤：', fetchError);
+            console.error('錯誤類型：', fetchError.name);
+            console.error('錯誤訊息：', fetchError.message);
+            
+            // 如果 fetch 失敗（通常是 CORS 或網路錯誤），使用備用方法
+            useBackupMethod = true;
+        }
+        
+        // 如果需要使用備用方法，或者 no-cors 模式下無法確認結果
+        if (useBackupMethod) {
+            console.log('使用備用表單提交方式（避免 CORS 問題）...');
+            try {
+                await submitViaForm(formData);
+                return; // 成功提交後返回
+            } catch (backupError) {
+                console.error('備用方法也失敗：', backupError);
+                throw backupError;
+            }
+        }
+
+        // 如果可以使用 fetch 且能讀取回應，繼續處理
+        try {
+            // 檢查回應狀態
+            if (!response.ok && response.status !== 0) {
+                const errorText = await response.text();
+                console.error('HTTP 錯誤回應：', errorText);
+                console.error('回應狀態碼：', response.status);
+                console.error('回應狀態文字：', response.statusText);
+                
+                // 如果是 302 重定向（Google Apps Script 常見），嘗試讀取重定向後的內容
+                if (response.status === 302 || response.redirected) {
+                    console.log('檢測到重定向，嘗試讀取最終回應...');
+                    const finalUrl = response.url;
+                    console.log('最終 URL：', finalUrl);
+                }
+                
+                throw new Error(`HTTP 錯誤！狀態碼：${response.status}`);
+            }
+
+            // 取得回應文字
+            const responseText = await response.text();
+            console.log('伺服器回應：', responseText);
+            
+            // 嘗試解析 JSON
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                // 如果不是 JSON，可能是 HTML 錯誤頁面
+                console.error('JSON 解析錯誤：', parseError);
+                console.error('回應內容（前 500 字元）：', responseText.substring(0, 500));
+                
+                // 檢查是否是 HTML 錯誤頁面
+                if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+                    throw new Error('伺服器返回了 HTML 頁面而非 JSON。可能是 Web App 部署設定問題。請確認：1) Web App 已正確部署 2) 「具有存取權的使用者」設為「任何人」');
+                }
+                
+                throw new Error('伺服器回應格式錯誤：' + responseText.substring(0, 100));
+            }
+
+            // 檢查結果
+            if (result && result.success) {
+                showMessage('表單已成功提交！感謝您的參與。', 'success');
+                form.reset();
+                
+                // 重置到第一頁
+                showPage(1);
+                updateProgressIndicator();
+                
+                // 3秒後隱藏成功訊息
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                throw new Error(result.error || result.message || '提交失敗：伺服器未返回成功訊息');
+            }
+        } catch (responseError) {
+            // 如果讀取回應時出錯，可能是 CORS 問題，嘗試使用備用方法
+            console.error('讀取回應時出錯：', responseError);
+            console.log('嘗試使用備用表單提交方式...');
+            try {
+                await submitViaForm(formData);
+                return;
+            } catch (backupError) {
+                throw responseError; // 如果備用方法也失敗，拋出原始錯誤
+            }
+        }
+    } catch (error) {
+        console.error('提交錯誤:', error);
+        console.error('錯誤名稱：', error.name);
+        console.error('錯誤堆疊：', error.stack);
+        
+        // 根據錯誤類型顯示不同的訊息
+        let errorMessage = '提交失敗：無法連接到伺服器。請確認：';
+        const errorMsg = error.message || '';
+        const errorName = error.name || '';
+        
+        if (errorMsg.includes('Failed to fetch') || 
+            errorMsg.includes('fetch') || 
+            errorName === 'TypeError' ||
+            errorMsg.includes('network') ||
+            errorMsg.includes('NetworkError')) {
+            errorMessage += '\n\n1. 已設定正確的 Google Apps Script Web App URL';
+            errorMessage += '\n2. Web App 已正確部署（執行身份：我，具有存取權的使用者：任何人）';
+            errorMessage += '\n3. 網路連線正常';
+            errorMessage += '\n\n提示：如果問題持續，請檢查瀏覽器控制台（按 F12）查看詳細錯誤';
+            
+            // 如果是網路錯誤，嘗試使用備用方法
+            console.log('檢測到網路錯誤，嘗試使用備用表單提交方式...');
+            try {
+                await submitViaForm(formData);
+                return;
+            } catch (backupError) {
+                console.error('備用方法也失敗：', backupError);
+            }
+        } else if (errorMsg.includes('HTTP')) {
+            errorMessage = '提交失敗：' + errorMsg + '。請檢查 Google Apps Script 是否正常運作。';
+        } else if (errorMsg.includes('CORS')) {
+            errorMessage = '提交失敗：CORS 錯誤。請確認 Google Apps Script Web App 的部署設定允許跨域請求（「具有存取權的使用者」必須設為「任何人」）。';
+        } else {
+            errorMessage = '提交失敗：' + errorMsg + '。請檢查瀏覽器控制台（按 F12）以獲取詳細錯誤資訊。';
+        }
+        
+        showMessage(errorMessage, 'error');
+    } finally {
+        setLoadingState(false);
+    }
+});
+
+// 備用提交方式：使用隱藏的表單提交（避免 CORS 問題）
+function submitViaForm(formData) {
+    return new Promise((resolve, reject) => {
+        // 創建隱藏的表單
+        const hiddenForm = document.createElement('form');
+        hiddenForm.method = 'POST';
+        hiddenForm.action = SCRIPT_URL;
+        hiddenForm.target = '_blank';  // 在新視窗打開，避免頁面跳轉
+        hiddenForm.style.display = 'none';
+        
+        // 添加資料欄位
+        const dataInput = document.createElement('input');
+        dataInput.type = 'hidden';
+        dataInput.name = 'data';
+        dataInput.value = JSON.stringify(formData);
+        hiddenForm.appendChild(dataInput);
+        
+        // 添加到頁面並提交
+        document.body.appendChild(hiddenForm);
+        
+        // 創建隱藏的 iframe 來接收回應
+        const iframe = document.createElement('iframe');
+        iframe.name = 'hidden_iframe';
+        iframe.style.display = 'none';
+        hiddenForm.target = 'hidden_iframe';
+        document.body.appendChild(iframe);
+        
+        // 設置超時
+        const timeout = setTimeout(() => {
+            document.body.removeChild(hiddenForm);
+            document.body.removeChild(iframe);
+            reject(new Error('提交超時。請檢查網路連線。'));
+        }, 10000);
+        
+        // 監聽 iframe 載入
+        iframe.onload = () => {
+            clearTimeout(timeout);
+            try {
+                // 嘗試讀取 iframe 內容（可能因為 CORS 無法讀取）
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const responseText = iframeDoc.body.textContent || iframeDoc.body.innerText;
+                
+                document.body.removeChild(hiddenForm);
+                document.body.removeChild(iframe);
+                
+                // 假設成功（因為無法讀取回應）
+                showMessage('表單已提交！請檢查 Google 試算表確認資料是否已寫入。', 'success');
+                form.reset();
+                showPage(1);
+                updateProgressIndicator();
+                resolve();
+            } catch (e) {
+                // 無法讀取 iframe 內容（CORS 限制）
+                document.body.removeChild(hiddenForm);
+                document.body.removeChild(iframe);
+                showMessage('表單已提交！由於安全限制無法確認回應，請檢查 Google 試算表確認資料是否已寫入。', 'success');
+                form.reset();
+                showPage(1);
+                updateProgressIndicator();
+                resolve();
+            }
+        };
+        
+        hiddenForm.submit();
+    });
+}
+
+// 收集表單資料
+function collectFormData() {
+    const data = {
+        Name: document.getElementById('name').value.trim(),
+        Email: document.getElementById('email').value.trim(),
+        Gender: document.querySelector('input[name="gender"]:checked')?.value || '',
+        Age: document.getElementById('age').value,
+        transportation: getCheckboxValues('transportation'),
+        Interest: getCheckboxValues('interest'),
+        Feedback: document.getElementById('feedback').value.trim(),
+        food: getCheckboxValues('food'),
+        drink: getCheckboxValues('drink'),
+        stay: getCheckboxValues('stay'),
+        travel: getCheckboxValues('travel')
+    };
+
+    return data;
+}
+
+// 取得複選框的值（陣列）
+function getCheckboxValues(name) {
+    const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// 驗證第一頁表單
+function validatePage1() {
+    const requiredFields = [
+        { id: 'name', message: '請輸入姓名' },
+        { id: 'email', message: '請輸入 Email' },
+        { id: 'age', message: '請輸入年齡' }
+    ];
+
+    for (const field of requiredFields) {
+        const element = document.getElementById(field.id);
+        if (!element.value.trim()) {
+            element.focus();
+            showMessage(field.message, 'error');
+            return false;
+        }
+    }
+
+    // 驗證 Email 格式
+    const email = document.getElementById('email').value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        document.getElementById('email').focus();
+        showMessage('請輸入有效的 Email 地址', 'error');
+        return false;
+    }
+
+    // 驗證性別是否選擇
+    const genderSelected = document.querySelector('input[name="gender"]:checked');
+    if (!genderSelected) {
+        showMessage('請選擇性別', 'error');
+        return false;
+    }
+
+    // 檢查交通方式是否至少選擇一項
+    const transportationChecked = document.querySelectorAll('input[name="transportation"]:checked');
+    if (transportationChecked.length === 0) {
+        showMessage('請至少選擇一項交通方式', 'error');
+        return false;
+    }
+
+    return true;
+}
+
+// 驗證表單（保留以備用）
+function validateForm() {
+    return validatePage1();
+}
+
+// 顯示訊息
+function showMessage(text, type) {
+    // 將換行符號轉換為 HTML 換行，並保留空白字元
+    const formattedText = text.replace(/\n/g, '<br>');
+    messageDiv.innerHTML = formattedText;
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.display = 'block';
+    
+    // 滾動到訊息位置
+    messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 設定載入狀態
+function setLoadingState(loading) {
+    if (loading) {
         submitBtn.disabled = true;
         submitBtn.classList.add('loading');
     } else {
@@ -222,194 +413,42 @@ function setSubmitButtonState(isLoading) {
     }
 }
 
-/**
- * 重置表單
- */
-function resetForm() {
-    form.reset();
-    // 清除所有錯誤訊息
-    Object.keys(validationRules).forEach(fieldName => {
-        clearError(fieldName);
+// 輸入框動畫效果
+const inputs = document.querySelectorAll('.input, .textarea');
+inputs.forEach(input => {
+    input.addEventListener('focus', function() {
+        this.parentElement.classList.add('focused');
     });
-}
 
-/**
- * 提交表單數據到 Google Apps Script
- * @param {Object} data - 要提交的數據
- */
-async function submitFormData(data) {
-    // 檢查 GAS URL 是否已設定
-    if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-        throw new Error('請先設定 Google Apps Script Web App URL');
-    }
-    
-    console.log('準備提交數據:', data);
-    console.log('目標 URL:', GAS_WEB_APP_URL);
-    
-    // 使用 Google Apps Script 推薦的方式：直接 POST，不檢查 CORS
-    // 這需要部署設定中「具有存取權的使用者」設為「任何人」
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        // 使用異步請求
-        xhr.open('POST', GAS_WEB_APP_URL, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        
-        // 處理回應
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                // 無論狀態碼如何，都嘗試處理
-                try {
-                    if (xhr.responseText && xhr.responseText.trim()) {
-                        const result = JSON.parse(xhr.responseText);
-                        console.log('收到回應:', result);
-                        resolve(result);
-                    } else {
-                        // 沒有回應內容，但請求可能已成功
-                        console.log('無回應內容，假設請求成功');
-                        resolve({ success: true });
-                    }
-                } catch (parseError) {
-                    // 無法解析回應，但請求可能已成功
-                    console.log('無法解析回應，但請求可能已成功');
-                    resolve({ success: true });
-                }
-            }
-        };
-        
-        // 處理錯誤
-        xhr.onerror = function() {
-            console.error('XHR 錯誤');
-            reject(new Error('無法連接到伺服器。請確認：\n1) Google Apps Script 部署設定中「具有存取權的使用者」已設為「任何人」\n2) 網路連線正常\n3) Web App URL 正確'));
-        };
-        
-        // 處理超時
-        xhr.ontimeout = function() {
-            console.error('請求超時');
-            reject(new Error('請求超時，請稍後再試'));
-        };
-        
-        xhr.timeout = 30000;
-        
-        // 發送請求
-        try {
-            console.log('發送請求...');
-            xhr.send(JSON.stringify(data));
-        } catch (sendError) {
-            console.error('發送請求時發生錯誤:', sendError);
-            reject(new Error('無法發送請求: ' + sendError.message));
-        }
+    input.addEventListener('blur', function() {
+        this.parentElement.classList.remove('focused');
     });
-}
+});
 
-/**
- * 處理表單提交
- * @param {Event} event - 表單提交事件
- */
-async function handleFormSubmit(event) {
-    event.preventDefault();
-    
-    // 清除之前的訊息
-    messageContainer.innerHTML = '';
-    
-    // 驗證表單
-    if (!validateForm()) {
-        showMessage('請檢查並修正表單中的錯誤', 'error');
-        // 滾動到第一個錯誤欄位
-        const firstError = document.querySelector('.error-message.show');
-        if (firstError) {
-            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        return;
+// 數字輸入欄位限制
+const ageInput = document.getElementById('age');
+ageInput.addEventListener('input', function() {
+    if (this.value < 1) {
+        this.value = '';
+    } else if (this.value > 120) {
+        this.value = 120;
     }
-    
-    // 收集表單數據
-    const formData = collectFormData();
-    
-    // 顯示載入狀態
-    setSubmitButtonState(true);
-    
-    try {
-        // 提交數據
-        await submitFormData(formData);
-        
-        // 顯示成功訊息
-        showMessage('問卷提交成功！感謝您的參與。', 'success');
-        
-        // 重置表單
+});
+
+// 頁面載入時的動畫效果
+window.addEventListener('load', () => {
+    const sections = document.querySelectorAll('.form-page.active .form-section');
+    sections.forEach((section, index) => {
         setTimeout(() => {
-            resetForm();
-        }, 2000);
-        
-    } catch (error) {
-        // 顯示錯誤訊息
-        showMessage(error.message || '提交失敗，請稍後再試', 'error');
-        console.error('表單提交錯誤:', error);
-    } finally {
-        // 恢復按鈕狀態
-        setSubmitButtonState(false);
-    }
-}
-
-/**
- * 即時驗證（當使用者離開欄位時）
- */
-function setupRealTimeValidation() {
-    // 為所有輸入欄位添加 blur 事件監聽器
-    const inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => {
-            const fieldName = input.name;
-            if (validationRules[fieldName]) {
-                validateField(fieldName, input.value);
-            }
-        });
-        
-        // 清除錯誤樣式當使用者開始輸入時
-        input.addEventListener('input', () => {
-            const fieldName = input.name;
-            if (input.style.borderColor === 'var(--color-error)' || 
-                input.style.borderColor === 'rgb(204, 0, 0)') {
-                clearError(fieldName);
-            }
-        });
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            section.style.transition = 'all 0.5s ease-out';
+            
+            setTimeout(() => {
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, 50);
+        }, index * 100);
     });
-    
-    // 為單選按鈕添加 change 事件監聽器
-    const radioGroups = ['food', 'drink', 'stay', 'travel'];
-    radioGroups.forEach(groupName => {
-        const radios = form.querySelectorAll(`input[name="${groupName}"]`);
-        radios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                clearError(groupName);
-            });
-        });
-    });
-}
-
-/**
- * 初始化應用程式
- */
-function init() {
-    // 檢查 GAS URL 是否已設定
-    if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-        console.warn('警告：請在 script.js 中設定 GAS_WEB_APP_URL');
-        showMessage('系統配置未完成，請聯繫管理員', 'error');
-    }
-    
-    // 綁定表單提交事件
-    form.addEventListener('submit', handleFormSubmit);
-    
-    // 設定即時驗證
-    setupRealTimeValidation();
-    
-    console.log('問卷表單系統已初始化');
-}
-
-// 當 DOM 載入完成時初始化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+});
 
