@@ -243,38 +243,62 @@ async function submitFormData(data) {
         throw new Error('請先設定 Google Apps Script Web App URL');
     }
     
-    try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-            // 不使用 no-cors，讓 Google Apps Script 處理 CORS
-            // 確保 GAS 部署設定中「具有存取權的使用者」設為「任何人」
-        });
+    // 使用 XMLHttpRequest，對 Google Apps Script 更兼容
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
         
-        // 嘗試讀取回應（如果可用）
-        if (response.ok) {
-            const result = await response.json();
-            return result;
-        } else {
-            // 即使回應不是 200，請求可能也已成功（GAS 有時返回非 200 狀態）
-            // 為了更好的使用者體驗，我們假設請求成功
-            return { success: true };
+        // 設定請求
+        xhr.open('POST', GAS_WEB_APP_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        // 處理成功回應
+        xhr.onload = function() {
+            // Google Apps Script 可能返回狀態碼 0（no-cors）或 200
+            if (xhr.status === 0 || xhr.status === 200) {
+                try {
+                    // 嘗試解析 JSON 回應
+                    if (xhr.responseText) {
+                        const result = JSON.parse(xhr.responseText);
+                        resolve(result);
+                    } else {
+                        // 沒有回應內容，但請求可能已成功
+                        resolve({ success: true });
+                    }
+                } catch (parseError) {
+                    // 無法解析回應，但請求可能已成功
+                    console.log('無法解析回應，但請求可能已成功:', parseError);
+                    resolve({ success: true });
+                }
+            } else {
+                // 其他狀態碼，但 Google Apps Script 有時會返回非 200 狀態碼
+                // 即使如此，數據可能已經寫入
+                console.log('收到狀態碼:', xhr.status);
+                resolve({ success: true });
+            }
+        };
+        
+        // 處理錯誤
+        xhr.onerror = function() {
+            console.error('XHR 錯誤:', xhr.status, xhr.statusText);
+            reject(new Error('網路請求失敗。請確認：1) 網路連線正常 2) Google Apps Script 部署設定中「具有存取權的使用者」已設為「任何人」'));
+        };
+        
+        // 處理超時
+        xhr.ontimeout = function() {
+            reject(new Error('請求超時，請稍後再試'));
+        };
+        
+        // 設定超時時間（30 秒）
+        xhr.timeout = 30000;
+        
+        // 發送請求
+        try {
+            xhr.send(JSON.stringify(data));
+        } catch (sendError) {
+            console.error('發送請求時發生錯誤:', sendError);
+            reject(new Error('無法發送請求: ' + sendError.message));
         }
-        
-    } catch (error) {
-        // 網路錯誤或 CORS 錯誤
-        console.error('提交錯誤:', error);
-        
-        // 如果是 CORS 錯誤，提供更明確的提示
-        if (error.message && error.message.includes('CORS')) {
-            throw new Error('跨域請求失敗，請確認 Google Apps Script 部署設定中「具有存取權的使用者」已設為「任何人」');
-        }
-        
-        throw new Error('無法連接到伺服器，請檢查網路連線或稍後再試');
-    }
+    });
 }
 
 /**
