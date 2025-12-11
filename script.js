@@ -1,5 +1,5 @@
 // ⚠️ 重要：請將下面的 URL 替換成您的 Google Apps Script Web App URL
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2tdF2gu4f-uTm2fp38Hfw2Fn7MQstr9KleZtBktSmawBHW3uFtm7CYolCaVzIvKpMxw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5CKUhZ3teYPMoxksZzAO_6-G6tvrB1nayZykR7wlldTiOGyrekd6eSBflOvZSk2Z5/exec';
 
 // 檢查 URL 是否已設定
 function checkScriptUrl() {
