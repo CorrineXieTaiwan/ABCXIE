@@ -1,0 +1,425 @@
+/* ============================================
+   極簡主義風格 - 黑白灰配色方案
+   Minimalist Design - Monochromatic Palette
+   ============================================ */
+
+/* 基礎重置與變數定義 */
+:root {
+    --color-primary: #000000;
+    --color-secondary: #333333;
+    --color-tertiary: #666666;
+    --color-border: #e0e0e0;
+    --color-background: #ffffff;
+    --color-background-alt: #f8f8f8;
+    --color-text: #1a1a1a;
+    --color-text-light: #666666;
+    --color-error: #cc0000;
+    --color-success: #2d5016;
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    --border-radius: 4px;
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--color-text);
+    background-color: var(--color-background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 容器與佈局 */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-md);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 頁首樣式 */
+.header {
+    text-align: center;
+    padding: var(--spacing-xl) 0 var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-xl);
+}
+
+.header h1 {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.subtitle {
+    font-size: 0.95rem;
+    color: var(--color-text-light);
+    font-weight: 400;
+}
+
+/* 主要內容區 */
+.main-content {
+    flex: 1;
+}
+
+/* 表單區塊 */
+.survey-form {
+    width: 100%;
+}
+
+.form-section {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--color-secondary);
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.01em;
+}
+
+.section-description {
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-md);
+}
+
+/* 表單群組 */
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--color-secondary);
+    margin-bottom: var(--spacing-xs);
+    letter-spacing: 0.01em;
+}
+
+.required {
+    color: var(--color-error);
+    margin-left: 2px;
+}
+
+/* 輸入欄位 */
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--color-text);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--color-secondary);
+    background-color: var(--color-background-alt);
+}
+
+.form-input::placeholder {
+    color: var(--color-text-light);
+    opacity: 0.6;
+}
+
+.form-input:invalid:not(:placeholder-shown) {
+    border-color: var(--color-error);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* 評分選項群組 */
+.rating-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    margin-top: var(--spacing-xs);
+}
+
+.rating-group input[type="radio"] {
+    display: none;
+}
+
+.rating-label {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    text-align: center;
+    font-size: 1rem;
+    color: var(--color-text);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.rating-label:hover {
+    background-color: var(--color-background-alt);
+    border-color: var(--color-secondary);
+}
+
+.rating-group input[type="radio"]:checked + .rating-label {
+    background-color: var(--color-primary);
+    color: var(--color-background);
+    border-color: var(--color-primary);
+}
+
+/* 錯誤訊息 */
+.error-message {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-error);
+    margin-top: var(--spacing-xs);
+    min-height: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.error-message.show {
+    opacity: 1;
+}
+
+/* 表單操作區 */
+.form-actions {
+    margin-top: var(--spacing-xl);
+    text-align: center;
+}
+
+.submit-btn {
+    position: relative;
+    padding: 0.875rem 2.5rem;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--color-background);
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    outline: none;
+    min-width: 160px;
+    letter-spacing: 0.02em;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+}
+
+.submit-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-loader {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--color-background);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.submit-btn.loading .btn-text {
+    opacity: 0;
+}
+
+.submit-btn.loading .btn-loader {
+    display: block;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* 訊息容器 */
+.message-container {
+    margin-top: var(--spacing-md);
+    min-height: 3rem;
+}
+
+.message {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.message.success {
+    background-color: rgba(45, 80, 22, 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(45, 80, 22, 0.3);
+}
+
+.message.error {
+    background-color: rgba(204, 0, 0, 0.1);
+    color: var(--color-error);
+    border: 1px solid rgba(204, 0, 0, 0.3);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 頁尾 */
+.footer {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+}
+
+/* ============================================
+   響應式設計 (Responsive Design)
+   ============================================ */
+
+/* 平板設備 (Tablet) */
+@media screen and (max-width: 768px) {
+    .container {
+        padding: var(--spacing-sm);
+    }
+
+    .header h1 {
+        font-size: 1.75rem;
+    }
+
+    .section-title {
+        font-size: 1.15rem;
+    }
+
+    .rating-label {
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+    }
+}
+
+/* 手機設備 (Mobile) */
+@media screen and (max-width: 480px) {
+    :root {
+        --spacing-xl: 2rem;
+        --spacing-lg: 1.5rem;
+    }
+
+    .header {
+        padding: var(--spacing-lg) 0 var(--spacing-md);
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .subtitle {
+        font-size: 0.875rem;
+    }
+
+    .form-section {
+        margin-bottom: var(--spacing-lg);
+        padding-bottom: var(--spacing-md);
+    }
+
+    .rating-group {
+        gap: var(--spacing-xs);
+    }
+
+    .rating-label {
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 1rem;
+    }
+}
+
+/* 小螢幕設備優化 */
+@media screen and (max-width: 320px) {
+    html {
+        font-size: 14px;
+    }
+
+    .rating-label {
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+    }
+}
+
+/* 高對比度模式支援 */
+@media (prefers-contrast: high) {
+    :root {
+        --color-border: #000000;
+        --color-text-light: #000000;
+    }
+}
+
+/* 減少動畫模式支援 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
