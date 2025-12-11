@@ -4,7 +4,7 @@
  * 
  * 重要：請將下方的 GAS_WEB_APP_URL 替換為您的 Google Apps Script Web App URL
  */
-const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx77JZBSnaxt1OWE9s7aJfXY8VNlE_kDN4v4BpTO5orgn_rXLLJr40K9Lhbitw-Tw45/exec';
+const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHbeaDPOHQzdRFQErbg8wgaaG_cuP8mo0OKej0Kqd-G-r8xjPAAc8x3w29hp4SMMKQ/exec';
 
 /**
  * DOM 元素引用
@@ -411,4 +411,5 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
 
